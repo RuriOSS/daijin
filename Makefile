@@ -23,17 +23,23 @@ all: build
 build:
 	go build -ldflags="-s -w -X main.version=$(VERSION)" -o daijin ./cmd/daijin
 
-# Build for Android ARM64 (production)
+# Build for Android ARM64 (production - most Android devices)
 build-android:
 	GOOS=android GOARCH=arm64 CGO_ENABLED=0 go build \
 		-ldflags="-s -w -X main.version=$(VERSION)" \
 		-o daijin-android-arm64 ./cmd/daijin
 
-# Build for Android ARM 32-bit
-build-android-arm:
-	GOOS=android GOARCH=arm CGO_ENABLED=0 go build \
+# Build for Linux x86_64 (for testing in emulators or x86 environments)
+build-linux-x64:
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build \
 		-ldflags="-s -w -X main.version=$(VERSION)" \
-		-o daijin-android-arm ./cmd/daijin
+		-o daijin-linux-x64 ./cmd/daijin
+
+# Build for Linux ARM64
+build-linux-arm64:
+	GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build \
+		-ldflags="-s -w -X main.version=$(VERSION)" \
+		-o daijin-linux-arm64 ./cmd/daijin
 
 test:
 	go test -v ./...
@@ -42,7 +48,7 @@ run:
 	go run ./cmd/daijin
 
 clean:
-	rm -f daijin daijin-android-arm64 daijin-android-arm
+	rm -f daijin daijin-android-*
 	rm -rf build/
 
 format:

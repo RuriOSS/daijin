@@ -13,8 +13,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        goos: [android]
-        goarch: [arm64, arm]
+        include:
+          - goos: android
+            goarch: arm64
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
 
     steps:
     - name: Checkout code
