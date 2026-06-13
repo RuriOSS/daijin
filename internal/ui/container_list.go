@@ -22,18 +22,20 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/moe-hacker/daijin/internal/container"
+	"github.com/moe-hacker/daijin/internal/rootfs"
 	"github.com/moe-hacker/daijin/internal/system"
 )
 
 type keyMap struct {
-	Up      key.Binding
-	Down    key.Binding
-	Enter   key.Binding
-	Delete  key.Binding
-	Install key.Binding
-	Refresh key.Binding
-	Help    key.Binding
-	Quit    key.Binding
+	Up       key.Binding
+	Down     key.Binding
+	Enter    key.Binding
+	Delete   key.Binding
+	Install  key.Binding
+	Refresh  key.Binding
+	Register key.Binding
+	Help     key.Binding
+	Quit     key.Binding
 }
 
 var keys = keyMap{
@@ -60,6 +62,10 @@ var keys = keyMap{
 	Refresh: key.NewBinding(
 		key.WithKeys("r"),
 		key.WithHelp("r", "refresh"),
+	),
+	Register: key.NewBinding(
+		key.WithKeys("R"),
+		key.WithHelp("R", "register"),
 	),
 	Help: key.NewBinding(
 		key.WithKeys("?"),
@@ -130,14 +136,49 @@ func (m containerListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case key.Matches(msg, keys.Delete):
 			if len(m.containers) > 0 {
-				return m, m.deleteContainer()
+				c := m.containers[m.cursor]
+				dialog := NewConfirmDialog(
+					"Delete Container",
+					fmt.Sprintf("Are you sure you want to delete '%s'?\nThis will remove the container directory: %s", c.Name, c.ContainerDir),
+					func() tea.Msg {
+						// Perform deletion
+						if err := m.manager.Remove(c.Name); err != nil {
+							m.err = fmt.Errorf("failed to delete: %w", err)
+						} else {
+							m.message = fmt.Sprintf("Deleted container: %s", c.Name)
+							// Reload list
+							m.containers, m.err = m.manager.List()
+							if m.cursor >= len(m.containers) && m.cursor > 0 {
+								m.cursor--
+							}
+						}
+						return nil
+					},
+					func() tea.Msg {
+						m.message = "Deletion cancelled"
+						return nil
+					},
+					m,
+				)
+				return dialog, nil
 			}
 
 		case key.Matches(msg, keys.Refresh):
 			return m, m.refresh()
 
+		case key.Matches(msg, keys.Register):
+			dialog := NewRegisterDialog(m.manager, m)
+			return dialog, dialog.Init()
+
 		case key.Matches(msg, keys.Install):
-			m.message = "Install feature coming soon..."
+			// Check if rurima is available
+			if client := rootfs.NewRurimaClient(); client == nil {
+				m.message = "Error: rurima not found. Please install rurima first."
+			} else {
+				// Switch to install wizard
+				wizard := NewInstallWizard(m.manager)
+				return wizard, wizard.Init()
+			}
 		}
 	}
 
@@ -247,6 +288,7 @@ func (m containerListModel) helpView() string {
 		"enter start",
 		"d delete",
 		"i install",
+		"R register",
 		"r refresh",
 		"q quit",
 	}
@@ -280,37 +322,6 @@ func (m containerListModel) startContainer() tea.Cmd {
 			os.Exit(1)
 		}
 
-		return nil
-	}
-}
-
-func (m containerListModel) deleteContainer() tea.Cmd {
-	return func() tea.Msg {
-		if m.cursor >= len(m.containers) {
-			return nil
-		}
-
-		c := m.containers[m.cursor]
-
-		// TODO: Add confirmation dialog
-		if err := m.manager.Remove(c.Name); err != nil {
-			m.err = fmt.Errorf("failed to delete: %w", err)
-			return nil
-		}
-
-		// Reload list
-		containers, err := m.manager.List()
-		m.containers = containers
-		if err != nil {
-			m.err = err
-		}
-
-		// Adjust cursor
-		if m.cursor >= len(m.containers) && m.cursor > 0 {
-			m.cursor--
-		}
-
-		m.message = fmt.Sprintf("Deleted container: %s", c.Name)
 		return nil
 	}
 }
