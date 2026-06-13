@@ -12,17 +12,42 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-.PHONY: all build format update
+.PHONY: all build build-android build-android-arm test run clean format deb
+
+# Version from git
+VERSION := $(shell git describe --tags --always --dirty)
+
 all: build
-# Just call build.sh.
+
+# Build for current platform (development)
 build:
-	./build.sh
-# Format script.
+	go build -ldflags="-s -w -X main.version=$(VERSION)" -o daijin ./cmd/daijin
+
+# Build for Android ARM64 (production)
+build-android:
+	GOOS=android GOARCH=arm64 CGO_ENABLED=0 go build \
+		-ldflags="-s -w -X main.version=$(VERSION)" \
+		-o daijin-android-arm64 ./cmd/daijin
+
+# Build for Android ARM 32-bit
+build-android-arm:
+	GOOS=android GOARCH=arm CGO_ENABLED=0 go build \
+		-ldflags="-s -w -X main.version=$(VERSION)" \
+		-o daijin-android-arm ./cmd/daijin
+
+test:
+	go test -v ./...
+
+run:
+	go run ./cmd/daijin
+
+clean:
+	rm -f daijin daijin-android-arm64 daijin-android-arm
+	rm -rf build/
+
 format:
-	shfmt -i 2 -w src/share/*.sh
-	shfmt -i 2 -w *.sh
-	shfmt -i 2 -w src/daijin
-# Update submodule.
-update:
-	cd src/rootfstool&&git pull git@github.com:moe-hacker/rootfstool main
-	cd src/rurima&&git pull git@github.com:moe-hacker/rurima main
+	gofmt -s -w .
+	go mod tidy
+
+deb:
+	./build.sh
