@@ -61,7 +61,9 @@ tar -xf src/share/proc.tar.xz -C build/data/data/com.termux/files/usr/share/daij
 
 # Compile Go daijin
 printf "${COLOR}Compiling daijin (Go)...${ENDCOLOR}\n"
-GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build \
+# Termux runs on Android but uses linux syscalls
+# Use GOOS=android for proper Android compatibility
+GOOS=android GOARCH=arm64 CGO_ENABLED=0 go build \
     -ldflags="-s -w -X main.version=$(git describe --tags --always --dirty)" \
     -o build/data/data/com.termux/files/usr/bin/daijin \
     ./cmd/daijin
