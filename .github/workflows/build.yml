@@ -1,0 +1,70 @@
+name: Build Daijin
+
+on:
+  push:
+    branches: [ gomod, main ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ gomod, main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [android]
+        goarch: [arm64, arm]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # For git describe
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.22'
+
+    - name: Build
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+        CGO_ENABLED: 0
+      run: |
+        VERSION=$(git describe --tags --always --dirty)
+        go build -ldflags="-s -w -X main.version=$VERSION" \
+          -o daijin-${{ matrix.goos }}-${{ matrix.goarch }} \
+          ./cmd/daijin
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: daijin-${{ matrix.goos }}-${{ matrix.goarch }}
+        path: daijin-${{ matrix.goos }}-${{ matrix.goarch }}
+
+    - name: Upload to release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: daijin-${{ matrix.goos }}-${{ matrix.goarch }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.22'
+
+    - name: Run tests
+      run: go test -v ./...
+
+    - name: Run go vet
+      run: go vet ./...
