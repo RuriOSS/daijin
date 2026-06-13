@@ -1,3 +1,5 @@
 daijin-*.deb
 build
 daijin
+daijin-android-*
+daijin-linux-*

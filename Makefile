@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-.PHONY: all build build-android build-android-arm test run clean format deb
+.PHONY: all build build-android test run clean format deb
 
 # Version from git
 VERSION := $(shell git describe --tags --always --dirty)
@@ -23,23 +23,11 @@ all: build
 build:
 	go build -ldflags="-s -w -X main.version=$(VERSION)" -o daijin ./cmd/daijin
 
-# Build for Android ARM64 (production - most Android devices)
+# Build for Android ARM64 (production)
 build-android:
 	GOOS=android GOARCH=arm64 CGO_ENABLED=0 go build \
 		-ldflags="-s -w -X main.version=$(VERSION)" \
 		-o daijin-android-arm64 ./cmd/daijin
-
-# Build for Linux x86_64 (for testing in emulators or x86 environments)
-build-linux-x64:
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build \
-		-ldflags="-s -w -X main.version=$(VERSION)" \
-		-o daijin-linux-x64 ./cmd/daijin
-
-# Build for Linux ARM64
-build-linux-arm64:
-	GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build \
-		-ldflags="-s -w -X main.version=$(VERSION)" \
-		-o daijin-linux-arm64 ./cmd/daijin
 
 test:
 	go test -v ./...
