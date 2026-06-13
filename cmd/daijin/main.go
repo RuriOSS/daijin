@@ -19,98 +19,11 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"github.com/moe-hacker/daijin/internal/system"
+	"github.com/moe-hacker/daijin/internal/ui"
 )
 
 const version = "2.0.0-dev"
-
-var (
-	themeColor = lipgloss.Color("#FEE4D0")
-
-	titleStyle = lipgloss.NewStyle().
-		Bold(true).
-		Foreground(themeColor).
-		MarginBottom(1)
-
-	menuStyle = lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(themeColor).
-		Padding(1, 2).
-		Width(60)
-)
-
-type model struct {
-	cursor int
-	choices []string
-}
-
-func initialModel() model {
-	return model{
-		cursor: 0,
-		choices: []string{
-			"Install",
-			"Run",
-			"Remove",
-			"Register",
-			"Clean rootfs",
-			"Exit",
-		},
-	}
-}
-
-func (m model) Init() tea.Cmd {
-	return nil
-}
-
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c", "q":
-			return m, tea.Quit
-		case "up", "k":
-			if m.cursor > 0 {
-				m.cursor--
-			}
-		case "down", "j":
-			if m.cursor < len(m.choices)-1 {
-				m.cursor++
-			}
-		case "enter", " ":
-			if m.cursor == len(m.choices)-1 {
-				return m, tea.Quit
-			}
-			// TODO: Handle menu actions
-			return m, nil
-		}
-	}
-	return m, nil
-}
-
-func (m model) View() string {
-	title := titleStyle.Render(fmt.Sprintf("Daijin v%s", version))
-
-	menu := ""
-	for i, choice := range m.choices {
-		cursor := " "
-		if m.cursor == i {
-			cursor = "▸"
-			choice = lipgloss.NewStyle().
-				Foreground(themeColor).
-				Bold(true).
-				Render(choice)
-		}
-		menu += fmt.Sprintf("%s %s\n", cursor, choice)
-	}
-
-	help := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("241")).
-		Render("\n↑/k up • ↓/j down • enter select • q quit")
-
-	content := title + "\n\n" + menu + help
-
-	return "\n" + menuStyle.Render(content) + "\n"
-}
 
 func main() {
 	if len(os.Args) > 1 {
@@ -128,7 +41,15 @@ func main() {
 		}
 	}
 
-	p := tea.NewProgram(initialModel())
+	// Ensure necessary directories exist
+	if err := system.EnsureDirs(); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to create directories: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Start the TUI
+	model := ui.NewContainerListModel()
+	p := tea.NewProgram(model, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Error: %v\n", err)
 		os.Exit(1)
