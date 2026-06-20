@@ -14,14 +14,14 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         fetch-depth: 0  # For git describe
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
-        go-version: '1.22'
+        go-version: '1.26.2'
 
     - name: Build for Android ARM64
       env:
@@ -35,7 +35,7 @@ jobs:
           ./cmd/daijin
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: daijin-android-arm64
         path: daijin-android-arm64
@@ -52,12 +52,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
-        go-version: '1.22'
+        go-version: '1.26.2'
 
     - name: Run tests
       run: go test -v ./...
