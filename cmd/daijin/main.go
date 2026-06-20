@@ -19,6 +19,7 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/moe-hacker/daijin/internal/rootfs"
 	"github.com/moe-hacker/daijin/internal/system"
 	"github.com/moe-hacker/daijin/internal/ui"
 )
@@ -44,6 +45,12 @@ func main() {
 	// Ensure necessary directories exist
 	if err := system.EnsureDirs(); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to create directories: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Ensure rurima binary is available
+	if err := rootfs.EnsureRurima(); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to extract rurima: %v\n", err)
 		os.Exit(1)
 	}
 

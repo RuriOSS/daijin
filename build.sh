@@ -23,11 +23,7 @@ echo -e "${COLOR}Building Daijin v2.0 (Go Edition)...${ENDCOLOR}"
 
 # Install dependencies
 printf "${COLOR}Installing dependencies...${ENDCOLOR}\n"
-pkg install ndk-multilib-native-static tsu coreutils tar git wget dpkg proot termux-tools clang ndk-sysroot ndk-multilib libcap-static binutils libseccomp-static golang make
-
-# Update submodules
-printf "${COLOR}Initializing submodules...${ENDCOLOR}\n"
-git submodule update --init --recursive
+pkg install tsu coreutils tar git wget dpkg proot termux-tools clang
 
 # Create build directories
 printf "${COLOR}Creating build directory...${ENDCOLOR}\n"
@@ -40,19 +36,18 @@ mkdir -p build/data/data/com.termux/files/usr/var/daijin/containers
 cp -r dpkg-conf/* build/DEBIAN/
 chmod -R 755 build/DEBIAN
 
-# Compile rurima
-printf "${COLOR}Compiling rurima...${ENDCOLOR}\n"
-cd src/rurima
-git submodule update --init
-./configure -s
-make
-cp rurima ../../build/data/data/com.termux/files/usr/bin/
-# Create ruri symlink message
-echo 'echo -e "\033[33mruri is built-in in rurima now, please use \033[32mrurima r\033[33m instead\033[0m"' >../../build/data/data/com.termux/files/usr/bin/ruri
-chmod 755 ../../build/data/data/com.termux/files/usr/bin/ruri
+# Download prebuilt rurima binary
+printf "${COLOR}Downloading rurima binary...${ENDCOLOR}\n"
+./scripts/download-rurima.sh build/data/data/com.termux/files/usr/bin/rurima
 
-# Return to root dir
-cd ../..
+# Also copy for Go embed
+printf "${COLOR}Preparing rurima for Go embed...${ENDCOLOR}\n"
+mkdir -p internal/rootfs/
+cp build/data/data/com.termux/files/usr/bin/rurima internal/rootfs/rurima
+
+# Create ruri wrapper
+echo 'echo -e "\033[33mruri is built-in in rurima now, please use \033[32mrurima r\033[33m instead\033[0m"' >build/data/data/com.termux/files/usr/bin/ruri
+chmod 755 build/data/data/com.termux/files/usr/bin/ruri
 
 # Decompress dummy proc files for proot
 printf "${COLOR}Extracting proc files...${ENDCOLOR}\n"

@@ -15,8 +15,10 @@
 package rootfs
 
 import (
+	_ "embed"
 	"bufio"
 	"fmt"
+	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -24,6 +26,37 @@ import (
 
 	"github.com/moe-hacker/daijin/internal/system"
 )
+
+//go:embed rurima
+var rurimaBinary []byte
+
+// EnsureRurima extracts the embedded rurima binary if not already present
+func EnsureRurima() error {
+	binaryPath := "/data/data/com.termux/files/usr/bin/rurima"
+
+	// Check if rurima already exists and is executable
+	if info, err := os.Stat(binaryPath); err == nil {
+		if info.Mode().Perm()&0111 != 0 {
+			// Already exists and executable, verify it works
+			cmd := exec.Command(binaryPath, "--version")
+			if err := cmd.Run(); err == nil {
+				return nil // Already exists, is executable, and works
+			}
+		}
+	}
+
+	// Ensure directory exists
+	if err := os.MkdirAll("/data/data/com.termux/files/usr/bin", 0755); err != nil {
+		return fmt.Errorf("failed to create bin directory: %w", err)
+	}
+
+	// Extract embedded binary
+	if err := os.WriteFile(binaryPath, rurimaBinary, 0755); err != nil {
+		return fmt.Errorf("failed to extract rurima binary: %w", err)
+	}
+
+	return nil
+}
 
 // RurimaClient wraps rurima binary
 type RurimaClient struct {

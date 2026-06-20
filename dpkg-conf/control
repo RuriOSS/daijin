@@ -2,7 +2,8 @@ Package: daijin
 Architecture: [arch]
 Installed-Size: [size]
 Maintainer: Moe-hacker
-Version: 1.5
-Homepage: https://github.com/Moe-hacker/daijin
-Depends: tsu, coreutils, p7zip, tar, unzip, zip, git, wget, dpkg, curl, nano, proot, axel, termux-tools, util-linux, pv, gawk, file
-Description: Run linux with chroot-unshare/proot on your Android phone,safely and easy.
+Version: 2.0.0
+Homepage: https://github.com/RuriOSS/daijin
+Depends: tsu, coreutils, tar, git, wget, dpkg, proot, termux-tools
+Description: Lightweight container manager for Termux with modern TUI
+
