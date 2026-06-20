@@ -19,32 +19,89 @@ import (
 	"path/filepath"
 )
 
-// Termux paths
+// Platform-specific paths
 var (
-	// PrefixDir is the Termux prefix directory
-	PrefixDir = getEnvOr("PREFIX", "/data/data/com.termux/files/usr")
+	// PrefixDir is the prefix directory
+	PrefixDir = initPrefixDir()
 
 	// BinDir is the binary directory
 	BinDir = filepath.Join(PrefixDir, "bin")
 
 	// ShareDir is the shared data directory for daijin
-	ShareDir = filepath.Join(PrefixDir, "share", "daijin")
+	ShareDir = initShareDir()
 
 	// VarDir is the variable data directory for daijin
-	VarDir = filepath.Join(PrefixDir, "var", "daijin")
+	VarDir = initVarDir()
 
 	// ContainersDir is where container configs are stored
 	ContainersDir = filepath.Join(VarDir, "containers")
 
 	// EtcDir is the config directory
-	EtcDir = filepath.Join(PrefixDir, "etc")
+	EtcDir = initEtcDir()
 
 	// ProcDir is where dummy proc files are stored
 	ProcDir = filepath.Join(ShareDir, "proc")
 
-	// HomeDir is the Termux home directory
-	HomeDir = getEnvOr("HOME", "/data/data/com.termux/files/home")
+	// HomeDir is the home directory
+	HomeDir = initHomeDir()
 )
+
+// initPrefixDir returns platform-specific prefix directory
+func initPrefixDir() string {
+	if IsAndroid {
+		return getEnvOr("PREFIX", "/data/data/com.termux/files/usr")
+	}
+	// Linux: check if running as root or user
+	if os.Geteuid() == 0 {
+		return "/usr"
+	}
+	return filepath.Join(os.Getenv("HOME"), ".local")
+}
+
+// initShareDir returns platform-specific share directory
+func initShareDir() string {
+	if IsAndroid {
+		return filepath.Join(PrefixDir, "share", "daijin")
+	}
+	// Linux FHS
+	if os.Geteuid() == 0 {
+		return "/usr/share/daijin"
+	}
+	return filepath.Join(os.Getenv("HOME"), ".local/share/daijin")
+}
+
+// initVarDir returns platform-specific var directory
+func initVarDir() string {
+	if IsAndroid {
+		return filepath.Join(PrefixDir, "var", "daijin")
+	}
+	// Linux FHS
+	if os.Geteuid() == 0 {
+		return "/var/lib/daijin"
+	}
+	return filepath.Join(os.Getenv("HOME"), ".local/share/daijin/var")
+}
+
+// initEtcDir returns platform-specific etc directory
+func initEtcDir() string {
+	if IsAndroid {
+		return filepath.Join(PrefixDir, "etc")
+	}
+	// Linux FHS
+	if os.Geteuid() == 0 {
+		return "/etc"
+	}
+	return filepath.Join(os.Getenv("HOME"), ".config/daijin")
+}
+
+// initHomeDir returns platform-specific home directory
+func initHomeDir() string {
+	if IsAndroid {
+		return getEnvOr("HOME", "/data/data/com.termux/files/home")
+	}
+	// Linux: standard HOME
+	return os.Getenv("HOME")
+}
 
 // getEnvOr returns the environment variable value or a default
 func getEnvOr(key, defaultValue string) string {

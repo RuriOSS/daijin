@@ -24,8 +24,9 @@ import (
 
 // Backend types
 const (
-	BackendProot = "proot"
-	BackendRuri  = "ruri"
+	BackendProot    = "proot"
+	BackendRuri     = "ruri"
+	BackendRootless = "rootless"
 )
 
 // Config represents a container configuration

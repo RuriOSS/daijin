@@ -20,15 +20,30 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+
+	"github.com/moe-hacker/daijin/internal/system"
 )
 
-// FixupScript contains the embedded fixup.sh content
+// FixupScript contains the embedded fixup.sh content (Android/Termux)
 //
 //go:embed fixup.sh
 var FixupScript string
 
-// RunFixup runs the fixup script inside a container
+// FixupScriptLinux contains the embedded fixup-linux.sh content
+//
+//go:embed fixup-linux.sh
+var FixupScriptLinux string
+
+// RunFixup runs the appropriate fixup script inside a container based on platform
 func RunFixup(containerDir string, backend string) error {
+	// Choose the appropriate fixup script
+	var scriptContent string
+	if system.IsAndroid {
+		scriptContent = FixupScript
+	} else {
+		scriptContent = FixupScriptLinux
+	}
+
 	// Write fixup script to container's /tmp
 	tmpPath := filepath.Join(containerDir, "tmp", "fixup.sh")
 
@@ -36,7 +51,7 @@ func RunFixup(containerDir string, backend string) error {
 		return fmt.Errorf("failed to create tmp dir: %w", err)
 	}
 
-	if err := os.WriteFile(tmpPath, []byte(FixupScript), 0755); err != nil {
+	if err := os.WriteFile(tmpPath, []byte(scriptContent), 0755); err != nil {
 		return fmt.Errorf("failed to write fixup script: %w", err)
 	}
 
@@ -47,7 +62,14 @@ func RunFixup(containerDir string, backend string) error {
 	case "proot":
 		cmd = exec.Command("proot", "-r", containerDir, "/tmp/fixup.sh")
 	case "ruri":
-		cmd = exec.Command("sudo", "LD_PRELOAD=", "rurima", "r", containerDir, "/tmp/fixup.sh")
+		if system.IsAndroid {
+			cmd = exec.Command("sudo", "LD_PRELOAD=", "rurima", "r", containerDir, "/tmp/fixup.sh")
+		} else {
+			cmd = exec.Command("sudo", "rurima", "r", containerDir, "/tmp/fixup.sh")
+		}
+	case "rootless":
+		cmd = exec.Command("unshare", "--user", "--map-root-user", "--mount", "--pid", "--fork",
+			"--", "chroot", containerDir, "/tmp/fixup.sh")
 	default:
 		return fmt.Errorf("unknown backend: %s", backend)
 	}

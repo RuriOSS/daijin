@@ -42,11 +42,19 @@ func (r *RuriBackend) RequiresRoot() bool {
 
 // Start starts a container using ruri (via rurima)
 func (r *RuriBackend) Start(config *Config, command []string) error {
-	// Mount /data as suid
-	_ = exec.Command("sudo", "mount", "-o", "remount,suid", "/data").Run()
+	// Mount /data as suid (Android only)
+	if system.IsAndroid {
+		_ = exec.Command("sudo", "mount", "-o", "remount,suid", "/data").Run()
+	}
 
 	// Use rurima r (ruri) to start the container
-	args := []string{"LD_PRELOAD=", "rurima", "r"}
+	args := []string{"rurima", "r"}
+
+	// Unset LD_PRELOAD on Android only
+	if system.IsAndroid {
+		// On Android, we need to unset LD_PRELOAD
+		args = []string{"LD_PRELOAD=", "rurima", "r"}
+	}
 
 	if config.ConfigPath != "" {
 		args = append(args, "-c", config.ConfigPath)

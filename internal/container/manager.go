@@ -34,8 +34,9 @@ func NewManager(configDir string) *Manager {
 	return &Manager{
 		configDir: configDir,
 		backends: map[string]Backend{
-			BackendProot: NewProotBackend(),
-			BackendRuri:  NewRuriBackend(),
+			BackendProot:    NewProotBackend(),
+			BackendRuri:     NewRuriBackend(),
+			BackendRootless: NewRootlessBackend(),
 		},
 	}
 }
@@ -143,7 +144,7 @@ func (m *Manager) Register(name, containerDir, backend string) error {
 	}
 
 	// Validate backend
-	if backend != BackendProot && backend != BackendRuri {
+	if backend != BackendProot && backend != BackendRuri && backend != BackendRootless {
 		return fmt.Errorf("invalid backend: %s", backend)
 	}
 

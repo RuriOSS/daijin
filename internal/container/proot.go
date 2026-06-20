@@ -43,15 +43,16 @@ func (p *ProotBackend) RequiresRoot() bool {
 
 // Start starts a container using proot
 func (p *ProotBackend) Start(config *Config, command []string) error {
-	// Unset LD_PRELOAD as required by proot
-	os.Unsetenv("LD_PRELOAD")
+	// Unset LD_PRELOAD on Android only (required by proot)
+	if system.IsAndroid {
+		os.Unsetenv("LD_PRELOAD")
+	}
 
 	args := []string{
 		"--link2symlink",
 		"--kill-on-exit",
 		"--sysvipc",
 		"-L",
-		"--ashmem-memfd",
 		"-0",
 		"-r", config.ContainerDir,
 		"-b", "/dev",
@@ -60,27 +61,39 @@ func (p *ProotBackend) Start(config *Config, command []string) error {
 		"-w", "/root",
 	}
 
-	// Mount proc dummy files
-	procMounts := []string{
-		"buddyinfo", "cgroups", "consoles", "crypto", "devices",
-		"diskstats", "execdomains", "fb", "filesystems", "interrupts",
-		"iomem", "ioports", "kallsyms", "key-users", "keys",
-		"kpageflags", "loadavg", "locks", "misc", "modules",
-		"pagetypeinfo", "partitions", "sched_debug", "softirqs",
-		"stat", "timer_list", "uptime", "version", "vmallocinfo",
-		"vmstat", "zoneinfo",
+	// Android-specific proot options
+	if system.IsAndroid {
+		args = append(args[:4], "--ashmem-memfd")
+		args = append(args, args[4:]...)
 	}
 
-	for _, mount := range procMounts {
-		src := filepath.Join(system.ProcDir, mount)
-		dst := filepath.Join("/proc", mount)
-		args = append(args, fmt.Sprintf("--mount=%s:%s", src, dst))
+	// Mount proc dummy files (Android only - Linux has real /proc)
+	if system.IsAndroid {
+		procMounts := []string{
+			"buddyinfo", "cgroups", "consoles", "crypto", "devices",
+			"diskstats", "execdomains", "fb", "filesystems", "interrupts",
+			"iomem", "ioports", "kallsyms", "key-users", "keys",
+			"kpageflags", "loadavg", "locks", "misc", "modules",
+			"pagetypeinfo", "partitions", "sched_debug", "softirqs",
+			"stat", "timer_list", "uptime", "version", "vmallocinfo",
+			"vmstat", "zoneinfo",
+		}
+
+		for _, mount := range procMounts {
+			src := filepath.Join(system.ProcDir, mount)
+			dst := filepath.Join("/proc", mount)
+			args = append(args, fmt.Sprintf("--mount=%s:%s", src, dst))
+		}
 	}
 
-	// Mount termux tmpdir
+	// Mount tmpdir
 	tmpdir := os.Getenv("TMPDIR")
 	if tmpdir == "" {
-		tmpdir = filepath.Join(system.PrefixDir, "tmp")
+		if system.IsAndroid {
+			tmpdir = filepath.Join(system.PrefixDir, "tmp")
+		} else {
+			tmpdir = "/tmp"
+		}
 	}
 	args = append(args, fmt.Sprintf("--mount=%s:/tmp", tmpdir))
 

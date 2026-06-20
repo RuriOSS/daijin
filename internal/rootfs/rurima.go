@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -32,7 +33,7 @@ var rurimaBinary []byte
 
 // EnsureRurima extracts the embedded rurima binary if not already present
 func EnsureRurima() error {
-	binaryPath := "/data/data/com.termux/files/usr/bin/rurima"
+	binaryPath := filepath.Join(system.BinDir, "rurima")
 
 	// Check if rurima already exists and is executable
 	if info, err := os.Stat(binaryPath); err == nil {
@@ -46,7 +47,7 @@ func EnsureRurima() error {
 	}
 
 	// Ensure directory exists
-	if err := os.MkdirAll("/data/data/com.termux/files/usr/bin", 0755); err != nil {
+	if err := os.MkdirAll(system.BinDir, 0755); err != nil {
 		return fmt.Errorf("failed to create bin directory: %w", err)
 	}
 
